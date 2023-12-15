@@ -6,7 +6,7 @@ from blog.models import Post
 PER_PAGE = 9
 
 def index(request):
-    posts = Post.objects.filter(is_published=True).order_by('-id')
+    posts = Post.my_objects.isPublished()
     paginator = Paginator(posts, PER_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)

@@ -81,11 +81,17 @@ class Page(models.Model):
         if not self.slug:
             self.slug = slugifyNew(self.title)
         return super().save(*args, **kwargs)
-    
+
+class PostManager(models.Manager):
+    def isPublished(self):
+        return self.filter(is_published=True).order_by('-id')
+
 class Post(models.Model):
     class Meta:
         verbose_name = 'Post'
         verbose_name_plural = 'Posts'
+
+    my_objects = PostManager()
 
     title = models.CharField(max_length=65,)
     slug = models.SlugField(unique=True, default="",
