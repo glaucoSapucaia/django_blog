@@ -160,6 +160,12 @@ input[type='search']::-webkit-search-results-decoration {
   -webkit-appearance: none;
 }
 
+/* CodeMirror */
+.CodeMirror {
+  height: auto !important;
+  font-size: var(--fs-smlr) !important;
+}
+
 /* Blog */
 body,
 html,
