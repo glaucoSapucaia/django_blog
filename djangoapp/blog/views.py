@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.core.paginator import Paginator
 from blog.models import Post
+from django.db.models import Q
 
 # Create your views here.
 PER_PAGE = 9
@@ -77,6 +78,28 @@ def post(request, slug):
         request,
         'blog/pages/post.html',
         context,
+    )
+
+def search(request):
+    search_value = request.GET.get('search').strip()
+    posts = Post.my_objects.isPublished().filter(
+        Q(title__icontains=search_value) |
+        Q(excerpt__icontains=search_value) |
+        Q(content__icontains=search_value),
+    )
+
+    paginator = Paginator(posts, PER_PAGE)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'search_value': search_value,
+    }
+    return render(
+        request,
+        'blog/pages/index.html',
+        context
     )
 
 def page(request, slug):
