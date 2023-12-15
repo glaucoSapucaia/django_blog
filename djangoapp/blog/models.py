@@ -62,11 +62,17 @@ class Category(models.Model):
         if not self.slug:
             self.slug = slugifyNew(self.name)
         return super().save(*args, **kwargs)
-    
+
+class PageManager(models.Manager):
+    def isPublished(self):
+        return self.filter(is_published=True).order_by('-id')
+
 class Page(models.Model):
     class Meta:
         verbose_name = 'Página'
         verbose_name_plural = 'Páginas'
+
+    my_objects = PageManager()
 
     title = models.CharField(max_length=65)
     slug = models.SlugField(unique=True, default="",
@@ -78,6 +84,11 @@ class Page(models.Model):
     def __str__(self):
         return self.title
     
+    def get_absolute_url(self):
+        if not self.is_published:
+            return reverse('blog:index')
+        return reverse('blog:page', args=(self.slug,))
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugifyNew(self.title)

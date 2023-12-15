@@ -1,6 +1,6 @@
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from blog.models import Post
+from blog.models import Post, Page
 from django.db.models import Q
 
 # Create your views here.
@@ -103,7 +103,13 @@ def search(request):
     )
 
 def page(request, slug):
+    page = Page.my_objects.isPublished().filter(slug=slug).first()
+
+    context = {
+        'page': page,
+    }
     return render(
         request,
         'blog/pages/page.html',
+        context,
     )
