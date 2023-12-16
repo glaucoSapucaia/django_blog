@@ -1,6 +1,6 @@
 from typing import Any
 from django.db.models.query import QuerySet
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.core.paginator import Paginator
 from blog.models import Post, Page
 from django.db.models import Q
@@ -140,27 +140,42 @@ class CategoryListView(PostListView):
 #         context
 #     )
 
-def tag(request, slug):
-    posts = Post.my_objects.isPublished().filter(tags__slug=slug)
+class TagListView(PostListView):
+    allow_empty = False
 
-    paginator = Paginator(posts, PER_PAGE)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    def get_queryset(self) -> QuerySet[Any]:
+        query_set = super().get_queryset().filter(tags__slug=self.kwargs.get('slug'))
+        return query_set
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        page_title = f'Tag {self.object_list[0].tags.first().name} - '
+        context.update({
+            'page_title': page_title,
+        })
+        return context
 
-    if len(page_obj) == 0:
-        raise Http404()
+# def tag(request, slug):
+#     posts = Post.my_objects.isPublished().filter(tags__slug=slug)
 
-    page_title = f'Tag - {page_obj[0].tags.first().name} - '
+#     paginator = Paginator(posts, PER_PAGE)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
 
-    context = {
-        'page_obj': page_obj,
-        'page_title': page_title,
-    }
-    return render(
-        request,
-        'blog/pages/index.html',
-        context
-    )
+#     if len(page_obj) == 0:
+#         raise Http404()
+
+#     page_title = f'Tag - {page_obj[0].tags.first().name} - '
+
+#     context = {
+#         'page_obj': page_obj,
+#         'page_title': page_title,
+#     }
+#     return render(
+#         request,
+#         'blog/pages/index.html',
+#         context
+#     )
 
 def post(request, slug):
     post_obj = Post.my_objects.isPublished().filter(slug=slug).first()
@@ -177,6 +192,38 @@ def post(request, slug):
         'blog/pages/post.html',
         context,
     )
+
+class SearchListView(PostListView):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._search_value = ''
+
+    def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._search_value = request.GET.get('search', '').strip()
+        return super().setup(request, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        query_set = super().get_queryset()
+        query_set = query_set.filter(
+            Q(title__icontains=self._search_value) |
+            Q(excerpt__icontains=self._search_value) |
+            Q(content__icontains=self._search_value),            
+        )
+        return query_set
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        page_title = f'Busca - {self._search_value[:30]} - '
+        context.update({
+            'page_title': page_title,
+            'search_value': self._search_value,
+        })
+        return context
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        if self._search_value == '':
+            return redirect('blog:index')
+        return super().get(request, *args, **kwargs)
 
 def search(request):
     search_value = request.GET.get('search').strip()
