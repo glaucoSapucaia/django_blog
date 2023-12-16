@@ -4,24 +4,40 @@ from blog.models import Post, Page
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.http import Http404
+from django.views.generic import ListView
 
 # Create your views here.
 PER_PAGE = 9
 
-def index(request):
-    posts = Post.my_objects.isPublished()
-    paginator = Paginator(posts, PER_PAGE)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+class PostListView(ListView):
+    model = Post
+    template_name = 'blog/pages/index.html'
+    context_object_name = 'posts'
+    ordering = ('-pk', )
+    paginate_by = PER_PAGE
+    queryset = Post.my_objects.isPublished()
 
-    context = {
-        'page_obj': page_obj,
-    }
-    return render(
-        request,
-        'blog/pages/index.html',
-        context
-    )
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'page_title': 'HOME - ',
+        })
+        return context
+
+# def index(request):
+#     posts = Post.my_objects.isPublished()
+#     paginator = Paginator(posts, PER_PAGE)
+#     page_number = request.GET.get('page')
+#     page_obj = paginator.get_page(page_number)
+
+#     context = {
+#         'page_obj': page_obj,
+#     }
+#     return render(
+#         request,
+#         'blog/pages/index.html',
+#         context
+#     )
 
 def created_by(request, author_pk):
     user = User.objects.filter(pk=author_pk).first()
