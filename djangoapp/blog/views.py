@@ -2,6 +2,8 @@ from django.shortcuts import render
 from django.core.paginator import Paginator
 from blog.models import Post, Page
 from django.db.models import Q
+from django.contrib.auth.models import User
+from django.http import Http404
 
 # Create your views here.
 PER_PAGE = 9
@@ -22,14 +24,24 @@ def index(request):
     )
 
 def created_by(request, author_pk):
-    posts = Post.my_objects.isPublished().filter(created_by__pk=author_pk)
+    user = User.objects.filter(pk=author_pk).first()
+    if user == None:
+        raise Http404()
 
+    user_name = user.username
+    if user.first_name:
+        user_name = f'Posts de {user.first_name} {user.last_name} - '
+
+    page_title = user_name
+
+    posts = Post.my_objects.isPublished().filter(created_by__pk=author_pk)
     paginator = Paginator(posts, PER_PAGE)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
     context = {
         'page_obj': page_obj,
+        'page_title': page_title,
     }
     return render(
         request,
@@ -44,8 +56,14 @@ def category(request, slug):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    if len(page_obj) == 0:
+        raise Http404()
+
+    page_title = f'Categoria - {page_obj[0].category.name} - '
+
     context = {
         'page_obj': page_obj,
+        'page_title': page_title,
     }
     return render(
         request,
@@ -60,8 +78,14 @@ def tag(request, slug):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    if len(page_obj) == 0:
+        raise Http404()
+
+    page_title = f'Tag - {page_obj[0].tags.first().name} - '
+
     context = {
         'page_obj': page_obj,
+        'page_title': page_title,
     }
     return render(
         request,
@@ -70,9 +94,14 @@ def tag(request, slug):
     )
 
 def post(request, slug):
-    post = Post.my_objects.filter(slug=slug).first()
+    post_obj = Post.my_objects.isPublished().filter(slug=slug).first()
+    if post_obj is None:
+        raise Http404()
+
+    page_title = f'Post - {post_obj.title} - '
     context = {
-        'post': post,
+        'post': post_obj,
+        'page_title': page_title,
     }
     return render(
         request,
@@ -92,9 +121,12 @@ def search(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    page_title = f'Busca - {search_value[:30]} - '
+
     context = {
         'page_obj': page_obj,
         'search_value': search_value,
+        'page_title': page_title,
     }
     return render(
         request,
@@ -103,10 +135,14 @@ def search(request):
     )
 
 def page(request, slug):
-    page = Page.my_objects.isPublished().filter(slug=slug).first()
+    page_obj = Page.my_objects.isPublished().filter(slug=slug).first()
+    if page_obj is None:
+        raise Http404()
 
+    page_title = f'Página - {page_obj.title} - '
     context = {
-        'page': page,
+        'page': page_obj,
+        'page_title': page_title,
     }
     return render(
         request,
